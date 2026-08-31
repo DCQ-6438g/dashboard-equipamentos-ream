@@ -3,6 +3,7 @@ name: Sincronizar dashboard
 on:
   schedule:
     - cron: "*/15 * * * *"
+
   workflow_dispatch:
 
 permissions:
@@ -19,6 +20,8 @@ jobs:
     steps:
       - name: Baixar repositório
         uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
 
       - name: Configurar Python
         uses: actions/setup-python@v6
@@ -26,22 +29,36 @@ jobs:
           python-version: "3.13"
 
       - name: Instalar dependências
-        run: pip install gspread google-auth requests
+        run: |
+          python -m pip install --upgrade pip
+          pip install gspread google-auth
 
       - name: Ler planilha e atualizar dashboard
-        id: sync
         env:
           GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
           GOOGLE_SHEET_ID: ${{ secrets.GOOGLE_SHEET_ID }}
           GOOGLE_WORKSHEET_NAME: ${{ secrets.GOOGLE_WORKSHEET_NAME }}
-        run: python sync_dashboard_google.py
+        run: |
+          python sync_dashboard_google.py
+
+      - name: Verificar se o dashboard mudou
+        id: changes
+        shell: bash
+        run: |
+          if git diff --quiet -- dashboard_v13.html; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "Nenhuma alteração encontrada."
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "dashboard_v13.html foi alterado."
+          fi
 
       - name: Salvar atualização
-        if: steps.sync.outputs.changed == 'true'
+        if: steps.changes.outputs.changed == 'true'
         run: |
           git config user.name "dashboard-bot"
           git config user.email "dashboard-bot@users.noreply.github.com"
-          git add dashboard_v10.html
+
+          git add dashboard_v13.html
           git commit -m "Atualização automática dos equipamentos"
           git push
-          
