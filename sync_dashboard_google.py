@@ -29,7 +29,7 @@ SHEET_ID = os.environ["GOOGLE_SHEET_ID"]
 WORKSHEET_NAME = os.environ.get("GOOGLE_WORKSHEET_NAME", "Sheet1")
 
 # Caminho do HTML dentro do repositório
-HTML_PATH = Path("dashboard_v10.html")
+HTML_PATH = Path("dashboard_v13.html")
 
 # Mesmo mapeamento de colunas usado nas outras versões
 COLUMN_MAP = {
@@ -43,6 +43,7 @@ COLUMN_MAP = {
     "Série": "serie",
     "Local": "local",
     "Potência": "potencia",
+    "Temperatura de operação": "temperaturaOperacao",
     "Tensão": "tensao",
     "Amperagem": "amperagem",
     "Última calibração": "ultimaCal",
