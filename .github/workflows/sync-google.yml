@@ -8,12 +8,15 @@ on:
 
 permissions:
   contents: write
+  pages: write
+  id-token: write
 
 concurrency:
   group: sync-dashboard
   cancel-in-progress: false
 
 jobs:
+
   sync:
     runs-on: ubuntu-latest
 
@@ -34,6 +37,7 @@ jobs:
           pip install gspread google-auth
 
       - name: Ler planilha e atualizar dashboard
+        id: sync
         env:
           GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
           GOOGLE_SHEET_ID: ${{ secrets.GOOGLE_SHEET_ID }}
@@ -41,20 +45,8 @@ jobs:
         run: |
           python sync_dashboard_google.py
 
-      - name: Verificar se o dashboard mudou
-        id: changes
-        shell: bash
-        run: |
-          if git diff --quiet -- dashboard_v13.html; then
-            echo "changed=false" >> "$GITHUB_OUTPUT"
-            echo "Nenhuma alteração encontrada."
-          else
-            echo "changed=true" >> "$GITHUB_OUTPUT"
-            echo "dashboard_v13.html foi alterado."
-          fi
-
       - name: Salvar atualização
-        if: steps.changes.outputs.changed == 'true'
+        if: steps.sync.outputs.changed == 'true'
         run: |
           git config user.name "dashboard-bot"
           git config user.email "dashboard-bot@users.noreply.github.com"
@@ -62,3 +54,35 @@ jobs:
           git add dashboard_v13.html
           git commit -m "Atualização automática dos equipamentos"
           git push
+
+      - name: Preparar site
+        run: |
+          mkdir -p _site
+          cp dashboard_v13.html _site/index.html
+
+      - name: Configurar GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Enviar site para publicação
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+
+  deploy:
+    needs: sync
+
+    runs-on: ubuntu-latest
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    permissions:
+      pages: write
+      id-token: write
+
+    steps:
+      - name: Publicar dashboard
+        id: deployment
+        uses: actions/deploy-pages@v4
