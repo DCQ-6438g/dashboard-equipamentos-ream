@@ -29,7 +29,7 @@ SHEET_ID = os.environ["GOOGLE_SHEET_ID"]
 WORKSHEET_NAME = os.environ.get("GOOGLE_WORKSHEET_NAME", "Sheet1")
 
 # Caminho do HTML dentro do repositório
-HTML_PATH = Path("dashboard_v13.html")
+HTML_PATH = Path("dashboard_v14.html")
 
 # Mesmo mapeamento de colunas usado nas outras versões
 COLUMN_MAP = {
