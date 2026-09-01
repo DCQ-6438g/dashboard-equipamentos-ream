@@ -55,6 +55,29 @@ COLUMN_MAP = {
 
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets.readonly"]
 
+DATE_PARSER = r"""function parseDateBR(value) {
+  const text = String(value || '').trim();
+  const match = text.match(/^(\d{1,2})[.\/-](\d{1,2})[.\/-](\d{2}|\d{4})$/);
+  if (!match) return null;
+
+  const [, dd, mm, yy] = match;
+  const day = Number(dd);
+  const month = Number(mm);
+  const year = yy.length === 2 ? 2000 + Number(yy) : Number(yy);
+  const date = new Date(year, month - 1, day);
+
+  if (
+    date.getFullYear() !== year ||
+    date.getMonth() !== month - 1 ||
+    date.getDate() !== day
+  ) {
+    return null;
+  }
+
+  date.setHours(0, 0, 0, 0);
+  return date;
+}"""
+
 # =====================================================================
 
 
@@ -96,6 +119,15 @@ def update_html(html_path: Path, records: list) -> bool:
         raise RuntimeError("Não encontrei 'const equipmentData = [...]' no HTML.")
 
     updated = pattern.sub(new_line, html, count=1)
+
+    date_parser_pattern = re.compile(
+        r"^function parseDateBR\(value\) \{.*?^\}",
+        re.DOTALL | re.MULTILINE,
+    )
+    if not date_parser_pattern.search(updated):
+        raise RuntimeError("Não encontrei a função 'parseDateBR' no HTML.")
+
+    updated = date_parser_pattern.sub(lambda _: DATE_PARSER, updated, count=1)
     if updated == html:
         print("Sem mudanças nos dados.")
         return False
